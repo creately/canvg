@@ -98,6 +98,7 @@ The third parameter is options:
 * scaleWidth: int => scales horizontally to width
 * scaleHeight: int => scales vertically to height
 * renderCallback: function => will call the function after the first render is completed
+* errorCallback: function => will call if error occured
 * forceRedraw: function => will call the function on every frame, if it returns true, will redraw
 * useCORS: true => will attempt to use CORS on images to not taint canvas
 

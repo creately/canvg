@@ -14,6 +14,7 @@ declare namespace canvg {
     scaleHeight?: number;
 
     renderCallback?: (dom: Document) => void;
+    errorCallback?: (error: Error) => void;
     forceRedraw?: () => boolean;
   }
 }

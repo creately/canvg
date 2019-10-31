@@ -934,7 +934,7 @@
 	    this.addStylesFromStyleDefinition = function () {
 	      // add styles
 	      for (var selector in svg.Styles) {
-	        if (selector[0] != '@' && matchesSelector(node, selector)) {
+	        if (selector[0] != '@' && node.matches && matchesSelector(node, selector)) {
 	          var styles = svg.Styles[selector];
 	          var specificity = svg.StylesSpecificity[selector];
 	          if (styles != null) {

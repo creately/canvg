@@ -51,6 +51,7 @@ function createCanvas(width, height) {
 //       scaleWidth: int => scales horizontally to width
 //       scaleHeight: int => scales vertically to height
 //       renderCallback: function => will call the function after the first render is completed
+//       errorCallback: function => will call if error occured
 //       enableRedraw: function => whether enable the redraw interval in node environment
 //       forceRedraw: function => will call the function on every frame, if it returns true, will redraw
 var canvg = function (target, s, opts) {
@@ -3355,7 +3356,9 @@ function build(opts) {
       var self = this;
       this.img.onload = function () { self.loaded = true; }
       this.img.onerror = function () {
-        svg.log('ERROR: image "' + href + '" not found');
+        var errorMsg = 'ERROR: image "' + href + '" not found';
+        if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( new Error( errorMsg ));
+        svg.log( errorMsg );
         self.loaded = true;
       }
       this.img.src = href;
@@ -3829,7 +3832,9 @@ function build(opts) {
 
     this.apply = function (ctx, x, y, width, height) {
       if (!StackBlur || typeof StackBlur.canvasRGBA === 'undefined') {
-        svg.log('ERROR: StackBlur.js must be included for blur to work');
+        var errorMsg = 'ERROR: StackBlur.js must be included for blur to work'; 
+        svg.log( errorMsg );
+        if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( new Error( errorMsg ));
         return;
       }
 
@@ -3856,7 +3861,9 @@ function build(opts) {
   svg.Element.desc.prototype = new svg.Element.ElementBase;
 
   svg.Element.MISSING = function (node) {
-    svg.log('ERROR: Element \'' + node.nodeName + '\' not yet implemented.');
+		var errorMsg = 'ERROR: Element \'' + node.nodeName + '\' not yet implemented.';
+		svg.log( errorMsg );
+		if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( errorMsg );
   }
   svg.Element.MISSING.prototype = new svg.Element.ElementBase;
 

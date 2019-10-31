@@ -1,7 +1,7 @@
 
 /*
  * canvg.js - Javascript SVG parser and renderer on Canvas
- * version 2.0.0
+ * version 1.0.0
  * MIT Licensed
  * Gabe Lerner (gabelerner@gmail.com)
  * https://github.com/canvg/canvg
@@ -67,6 +67,7 @@
 	//       scaleWidth: int => scales horizontally to width
 	//       scaleHeight: int => scales vertically to height
 	//       renderCallback: function => will call the function after the first render is completed
+	//       errorCallback: function => will call if error occured
 	//       enableRedraw: function => whether enable the redraw interval in node environment
 	//       forceRedraw: function => will call the function on every frame, if it returns true, will redraw
 	var canvg = function (target, s, opts) {
@@ -242,12 +243,9 @@
 	    { return null; }
 	    var AJAX;
 	    if (windowEnv.XMLHttpRequest) { AJAX = new windowEnv.XMLHttpRequest(); } else { AJAX = new ActiveXObject('Microsoft.XMLHTTP'); }
-	    if (AJAX) {
-	      AJAX.open('GET', url, false);
-	      AJAX.send(null);
-	      return AJAX.responseText;
-	    }
-	    return null;
+	    AJAX.open('GET', url, false);
+	    AJAX.send(null);
+	    return AJAX.responseText;
 	  };
 
 	  // parse xml
@@ -678,9 +676,15 @@
 	    this.Type.scale = function (s) {
 	      this.p = svg.CreatePoint(s);
 	      this.apply = function (ctx) {
+	        if (this.px === 0 || this.py === 0) {
+	          return;
+	        }
 	        ctx.scale(this.p.x || 1.0, this.p.y || this.p.x || 1.0);
 	      };
 	      this.unapply = function (ctx) {
+	        if (this.px === 0 || this.py === 0) {
+	          return;
+	        }
 	        ctx.scale(1.0 / this.p.x || 1.0, 1.0 / this.p.y || this.p.x || 1.0);
 	      };
 	      this.applyToPoint = function (p) {
@@ -892,7 +896,7 @@
 	      if (this.style('mask').hasValue()) { // mask
 	        var mask = this.style('mask').getDefinition();
 	        if (mask != null) mask.apply(ctx, this);
-	      } else if (this.style('filter').hasValue()) { // filter
+	      } else if (this.style('filter').valueOrDefault('none') !== 'none') { // filter
 	        var filter = this.style('filter').getDefinition();
 	        if (filter != null) filter.apply(ctx, this);
 	      } else {
@@ -950,7 +954,7 @@
 	    };
 
 	    // Microsoft Edge fix
-	    var allUppercase = new RegExp('^[A-Z\-]+$');
+	    var allUppercase = new RegExp('^[A-Z-]+$');
 	    var normalizeAttributeName = function (name) {
 	      if (allUppercase.test(name)) {
 	        return name.toLowerCase();
@@ -1073,6 +1077,12 @@
 	      if (typeof ctx.font != 'undefined') {
 	        if (this.style('font').hasValue()) {
 	          ctx.font = this.style('font').value;
+	          // store the font-size in case we have to update the current font-size
+	          // we can add the element temporarily in dom to extract the style and parse the font easily
+	          var element = doc.createElement('span');
+	          element.setAttribute('style', 'font: ' + ctx.font);
+	          this.styles['font-size'] = new svg.Property('font-size', element.style['fontSize']);
+	          element.remove();
 	        } else {
 	          ctx.font = svg.Font.CreateFont(
 	            this.style('font-style').value,
@@ -1080,12 +1090,11 @@
 	            this.style('font-weight').value,
 	            this.style('font-size').hasValue() ? this.style('font-size').toPixels() + 'px' : '',
 	            this.style('font-family').value).toString();
-
-	          // update em size if needed
-	          var currentFontSize = this.style('font-size', false, false);
-	          if (currentFontSize.isPixels()) {
-	            svg.emSize = currentFontSize.toPixels();
-	          }
+	        }
+	        // update em size if needed
+	        var currentFontSize = this.style('font-size', false, false);
+	        if (currentFontSize.isPixels()) {
+	          svg.emSize = currentFontSize.toPixels();
 	        }
 	      }
 
@@ -3322,7 +3331,9 @@
 	      var self = this;
 	      this.img.onload = function () { self.loaded = true; };
 	      this.img.onerror = function () {
-	        svg.log('ERROR: image "' + href + '" not found');
+	        var errorMsg = 'ERROR: image "' + href + '" not found';
+	        if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( new Error( errorMsg ));
+	        svg.log( errorMsg );
 	        self.loaded = true;
 	      };
 	      this.img.src = href;
@@ -3796,7 +3807,9 @@
 
 	    this.apply = function (ctx, x, y, width, height) {
 	      if (!stackblurCanvas || typeof stackblurCanvas.canvasRGBA === 'undefined') {
-	        svg.log('ERROR: StackBlur.js must be included for blur to work');
+	        var errorMsg = 'ERROR: StackBlur.js must be included for blur to work'; 
+	        svg.log( errorMsg );
+	        if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( new Error( errorMsg ));
 	        return;
 	      }
 
@@ -3816,7 +3829,9 @@
 	  svg.Element.desc.prototype = new svg.Element.ElementBase;
 
 	  svg.Element.MISSING = function (node) {
-	    svg.log('ERROR: Element \'' + node.nodeName + '\' not yet implemented.');
+			var errorMsg = 'ERROR: Element \'' + node.nodeName + '\' not yet implemented.';
+			svg.log( errorMsg );
+			if (typeof svg.opts['errorCallback'] == 'function') svg.opts['errorCallback']( errorMsg );
 	  };
 	  svg.Element.MISSING.prototype = new svg.Element.ElementBase;
 
